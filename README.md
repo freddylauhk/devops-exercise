@@ -1,14 +1,23 @@
-# Welcome to your CDK TypeScript project
+# Senior Cloud DevOps Engineer exercise
 
-This is a blank project for CDK development with TypeScript.
+The Application Engineering team has been developing a custom WooCommerce-based product which will need to be deployed for this initiative. As a member of the DevOps Engineering team your job will be to create the cloud-based infrastructure for supporting this deployment. You will need to create a reference architecture and implement it using modern IaC techniques with documentation for 3-tier application. You can use serverless or container technology to implement this. Its preferred to perform exercise in Typescript CDK or CDKTF. Kindly push architectural diagrams to Github repo along with the code. 
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+### Custom WooCommerce-Based Product
+- WordPress (PHP) based web application
+- Relational Database
+- Static webpage and assets
 
-## Useful commands
+### Infrastructure Design
+- **3-Tier Model**:
+  - **Frontend**: Amazon S3 for static assets + Amazon CloudFront for low-latency CDN
+  - **Backend**: Amazon ECS with Fargate for a container-based solution
+  - **Database**: Amazon RDS for relational database
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+- **Additional Infrastructure**:
+  - **Networking**: Amazon VPC
+  - **DNS**: Amazon Route 53
+  - **Monitoring and Alerting**: Amazon CloudWatch Alarms
+  - **Load Balancing**: Application Load Balancer
+
+## Architecture
+![Architecture Diagram](./BMO_devops_exercise.png)
