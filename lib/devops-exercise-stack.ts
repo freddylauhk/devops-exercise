@@ -1,3 +1,4 @@
+// import necessary library 
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -19,7 +20,7 @@ export class DevopsExerciseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Setup VPC
+    // Creates a VPC with a maximum of 2 availability zones.
     const vpc = new ec2.Vpc(this, 'Vpc', {
       maxAzs: 2
     });
@@ -37,7 +38,7 @@ export class DevopsExerciseStack extends cdk.Stack {
       }
     });
 
-    // Setup rdsDB
+    // Setup RDS DB instance
     const rdsDB = new rds.DatabaseInstance(this, 'WooCommerceDB', {
       engine: rds.DatabaseInstanceEngine.mysql({
         version: rds.MysqlEngineVersion.VER_8_0
@@ -59,23 +60,27 @@ export class DevopsExerciseStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
+    // Setup CloudFront distribution to serve content from the S3 bucket.
     const distribution = new cloudfront.Distribution(this, 'WooCommerceDistribution', {
       defaultBehavior: {
         origin: new origins.S3Origin(s3Bucket)
       }
     });
     
+    // Define Fargate task with 4GB memory and 2 vCPUs
     const fargateTaskDefinition = new ecs.FargateTaskDefinition(this, 'WooCommerceTaskDef', {
       memoryLimitMiB: 4096,
       cpu: 2048
     });
 
+    // Grants S3 permissions to the Fargate task role
     const s3Policy = new iam.PolicyStatement({
       actions: ['s3:*'],
       resources: [s3Bucket.bucketArn, `${s3Bucket.bucketArn}/*`],
     });
     fargateTaskDefinition.addToTaskRolePolicy(s3Policy);
 
+    // Adds a container to the task definition with WooCommerce DB setup, and connect the S3 and Cloudfront
     const container = fargateTaskDefinition.addContainer('WooCommerceContainer', {
       image: ecs.ContainerImage.fromRegistry('wordpress:latest'),
       environment: {
@@ -91,11 +96,13 @@ export class DevopsExerciseStack extends cdk.Stack {
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'WooCommerce' })
     });
 
+    // Maps container port 80 to host port 80.
     container.addPortMappings({
       containerPort: 80,
       protocol: ecs.Protocol.TCP
     });
 
+    // Configures a Fargate service with an application load balancer.
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'WooCommerceService', {
       cluster,
       taskDefinition: fargateTaskDefinition,
@@ -103,6 +110,7 @@ export class DevopsExerciseStack extends cdk.Stack {
       publicLoadBalancer: true
     });
 
+    // Configures Route 53 hosted zone and DNS records.
     const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
       domainName: 'customwoocommerce.com'
     });
@@ -112,7 +120,7 @@ export class DevopsExerciseStack extends cdk.Stack {
       target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
     });
 
-    // Cloud watch Alarm
+    // Sets up CloudWatch alarms
     const cpuAlarm = new cloudwatch.Alarm(this, 'CPUUtilizationAlarm', {
       metric: fargateService.service.metricCpuUtilization(),
       threshold: 80,
@@ -129,6 +137,7 @@ export class DevopsExerciseStack extends cdk.Stack {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD
     });
 
+    // Output
     new cdk.CfnOutput(this, 'LoadBalancerDNS', {
       value: fargateService.loadBalancer.loadBalancerDnsName
     });
